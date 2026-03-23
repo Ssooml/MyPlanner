@@ -3,92 +3,910 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>My Cloud Planner</title>
+    <title>CloudPlanner - Твой планировщик</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <style>
+        * { box-sizing: border-box; }
+        
         :root {
-            --bg: #f0f2f5; --card: #ffffff; --text: #1c1e21;
-            --primary: #1a73e8; --accent: #e8f0fe; --border: #dadce0;
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --primary: #6366f1;
+            --primary-light: #e0e7ff;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px rgba(0,0,0,0.07), 0 10px 13px rgba(0,0,0,0.05);
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        
         [data-theme="dark"] {
-            --bg: #121212; --card: #1e1e1e; --text: #e8eaed;
-            --primary: #8ab4f8; --accent: #2c3e50; --border: #3c4043;
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --primary: #818cf8;
+            --primary-light: #3730a3;
+            --border: #334155;
         }
 
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; transition: 0.3s; padding-bottom: 50px; }
-        .container { width: 100%; max-width: 500px; margin: 0 auto; padding: 15px; box-sizing: border-box; }
-        
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .user-chip { display: flex; align-items: center; gap: 10px; background: var(--card); padding: 5px 12px; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .user-chip img { width: 24px; border-radius: 50%; }
+        body { 
+            font-family: 'Segoe UI', -apple-system, system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            transition: background var(--transition);
+            overflow-x: hidden;
+        }
 
-        .day-nav { display: flex; gap: 8px; overflow-x: auto; padding: 5px 0 15px; scrollbar-width: none; }
-        .day-nav::-webkit-scrollbar { display: none; }
-        .day-btn { flex: 0 0 55px; height: 65px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .day-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .container { 
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
 
-        .input-card { background: var(--card); padding: 15px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .input-row { display: flex; gap: 8px; }
-        input { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; color: var(--text); font-size: 16px; outline: none; flex: 1; }
-        input[type="time"] { width: 100px; flex: none; }
-        .add-btn { background: var(--primary); color: white; border: none; padding: 0 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        /* ========== ЛОГИН ЭКРАН ========== */
+        .login-screen {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, var(--primary) 0%, #a78bfa 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            gap: 30px;
+        }
 
-        .task-card { display: flex; align-items: center; gap: 15px; background: var(--card); padding: 16px; border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border); }
-        .task-card.done { opacity: 0.5; }
-        .task-card.done .task-text { text-decoration: line-through; }
-        .task-info { flex: 1; }
-        .task-text { display: block; font-weight: 500; margin-bottom: 4px; }
-        .time-label { font-size: 12px; background: var(--accent); color: var(--primary); padding: 2px 6px; border-radius: 4px; font-weight: bold; }
-        .late-tag { font-size: 11px; color: #ff5252; font-weight: bold; margin-left: 8px; }
-        
-        .del-btn { background: none; border: none; color: #ff5252; cursor: pointer; font-size: 20px; }
+        .login-card {
+            background: var(--bg-secondary);
+            padding: 50px 40px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            max-width: 400px;
+        }
 
-        .login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
-        .google-btn { background: white; color: #444; border: 1px solid #ddd; padding: 12px 24px; border-radius: 25px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+        .login-card h1 {
+            color: var(--primary);
+            font-size: 32px;
+            margin: 0 0 10px;
+            font-weight: 700;
+        }
 
-        .hidden { display: none !important; }
+        .login-card p {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin: 0 0 30px;
+        }
+
+        .google-btn {
+            background: white;
+            color: #1f2937;
+            border: 2px solid var(--border);
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            transition: all var(--transition);
+            font-size: 15px;
+        }
+
+        .google-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            border-color: var(--primary);
+        }
+
+        /* ========== HEADER ========== */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-chip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-secondary);
+            padding: 8px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .user-chip:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .user-chip img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+
+        .user-chip span {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+        }
+
+        .icon-btn:hover {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            transform: scale(1.05);
+        }
+
+        /* ========== МОДАЛЬНОЕ ОКНО НАСТРОЕК ========== */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1500;
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .setting-group {
+            margin-bottom: 25px;
+        }
+
+        .setting-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .switch {
+            position: relative;
+            width: 50px;
+            height: 28px;
+            background: var(--border);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+
+        .switch.active {
+            background: var(--success);
+        }
+
+        .switch::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: left var(--transition);
+        }
+
+        .switch.active::after {
+            left: 24px;
+        }
+
+        /* ========== DAY NAVIGATION ========== */
+        .day-nav {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .day-btn {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            padding: 12px 8px;
+            cursor: pointer;
+            transition: all var(--transition);
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .day-btn span {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .day-btn small {
+            display: block;
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        .day-btn:hover {
+            transform: translateY(-4px);
+        }
+
+        .day-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        /* ========== MAIN CONTENT GRID ========== */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        /* ========== INPUT CARD ========== */
+        .input-section {
+            grid-column: 1 / -1;
+        }
+
+        .input-card {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .input-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .input-tab {
+            background: none;
+            border: none;
+            padding: 10px 16px;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: all var(--transition);
+            font-size: 14px;
+        }
+
+        .input-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.2s;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .input-row.full {
+            gap: 0;
+        }
+
+        input, select, textarea {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: border var(--transition);
+            font-family: inherit;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+        }
+
+        input[type="text"],
+        input[type="email"],
+        textarea {
+            flex: 1;
+        }
+
+        input[type="time"] {
+            width: 120px;
+            flex: 0 0 auto;
+        }
+
+        select {
+            width: auto;
+            padding: 12px 10px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .add-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .add-btn:active {
+            transform: translateY(0);
+        }
+
+        /* ========== STATS SECTION ========== */
+        .stats-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .stats-card h3 {
+            margin: 0 0 15px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), #10b981);
+            transition: width var(--transition);
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* ========== TASK LIST ========== */
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            transition: all var(--transition);
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .task-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+        }
+
+        .task-card.done {
+            opacity: 0.6;
+        }
+
+        .task-checkbox {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .task-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .task-text {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 6px;
+            word-break: break-word;
+            font-size: 15px;
+        }
+
+        .task-card.done .task-text {
+            text-decoration: line-through;
+            color: var(--text-secondary);
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 12px;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .tag.late {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        .tag.recurring {
+            background: #e0f2fe;
+            color: #0284c7;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .del-btn {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px 8px;
+            transition: all var(--transition);
+            opacity: 0.7;
+        }
+
+        .del-btn:hover {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+
+        .edit-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px 8px;
+            transition: all var(--transition);
+            opacity: 0.7;
+        }
+
+        .edit-btn:hover {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+
+        /* ========== EMPTY STATE ========== */
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-secondary);
+            grid-column: 1 / -1;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            margin: 0 0 10px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* ========== FOOTER ========== */
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .day-nav {
+                grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .login-card {
+                padding: 40px 30px;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+
+            .input-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            input[type="time"] {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 12px;
+            }
+
+            .day-nav {
+                grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+                gap: 8px;
+            }
+
+            .day-btn {
+                padding: 10px 6px;
+                font-size: 12px;
+            }
+
+            .task-card {
+                padding: 12px;
+                gap: 10px;
+            }
+
+            .login-card {
+                padding: 30px 20px;
+            }
+
+            .login-card h1 {
+                font-size: 28px;
+            }
+
+            .add-btn {
+                width: 100%;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body data-theme="light">
 
+<!-- LOGIN SCREEN -->
 <div id="loginOverlay" class="login-screen">
-    <h1 style="color:var(--primary)">Daily Planner</h1>
-    <p>Синхронизация задач через облако</p>
-    <button class="google-btn" onclick="login()">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20">
-        Войти через Google
-    </button>
+    <div class="login-card">
+        <h1>CloudPlanner</h1>
+        <p>Синхронизируй свои задачи в облаке</p>
+        <button class="google-btn" onclick="login()">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20">
+            Войти через Google
+        </button>
+    </div>
 </div>
 
-<div id="mainApp" class="container hidden">
-    <div class="header">
-        <div class="user-chip" id="userBadge"></div>
-        <button onclick="toggleTheme()" style="background:none; border:none; font-size:22px; cursor:pointer">🌓</button>
-    </div>
-
-    <div class="day-nav" id="dayNav"></div>
-
-    <div class="input-card">
-        <div class="input-row">
-            <input type="text" id="taskText" placeholder="Что планируем?">
-            <input type="time" id="taskTime">
-            <button class="add-btn" onclick="addTask()">+</button>
+<!-- SETTINGS MODAL -->
+<div id="settingsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>⚙️ Настройки</h2>
+            <button class="close-btn" onclick="closeSettings()">✕</button>
         </div>
-    </div>
 
-    <div id="taskList"></div>
-    
-    <div style="text-align: center; margin-top: 30px;">
-        <button onclick="logout()" style="background:none; border:none; color:var(--text); opacity:0.4; cursor:pointer">Выйти</button>
+        <div class="setting-group">
+            <label>Тёмная тема</label>
+            <div class="toggle-switch">
+                <div class="switch" id="themeSwitch" onclick="toggleTheme()"></div>
+                <span id="themeLabel">Выключено</span>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <label>Напоминания</label>
+            <div class="toggle-switch">
+                <div class="switch" id="notifSwitch" onclick="toggleNotifications()"></div>
+                <span id="notifLabel">Выключено</span>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <label>Время напоминания (минут до начала)</label>
+            <input type="number" id="reminderTime" min="5" max="120" step="5" value="15">
+        </div>
+
+        <div class="setting-group">
+            <label>Отчёты по дням</label>
+            <div class="toggle-switch">
+                <div class="switch" id="reportsSwitch" onclick="toggleReports()"></div>
+                <span id="reportsLabel">Выключено</span>
+            </div>
+        </div>
+
+        <button class="add-btn" onclick="logout()" style="width: 100%; background: var(--danger);">Выйти из аккаунта</button>
+    </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" class="hidden">
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-left">
+                <div class="user-chip" onclick="openSettings()">
+                    <img id="userAvatar" src="" alt="">
+                    <span id="userName">Пользователь</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="icon-btn" onclick="openSettings()" title="Настройки">⚙️</button>
+                <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="Тема">🌙</button>
+            </div>
+        </div>
+
+        <!-- DAY NAVIGATION -->
+        <div class="day-nav" id="dayNav"></div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-grid">
+            <!-- INPUT SECTION -->
+            <div class="input-section">
+                <div class="input-card">
+                    <div class="input-tabs">
+                        <button class="input-tab active" onclick="switchTab(event, 'single-task')">📝 Одна задача</button>
+                        <button class="input-tab" onclick="switchTab(event, 'recurring')">🔄 Ежедневно</button>
+                    </div>
+
+                    <!-- Single Task Tab -->
+                    <div id="single-task" class="tab-content active">
+                        <div class="input-row">
+                            <input type="text" id="taskText" placeholder="Что сделать? (макс. 255 символов)" maxlength="255">
+                        </div>
+                        <div class="input-row">
+                            <input type="time" id="taskTime" placeholder="Время">
+                            <select id="taskCategory">
+                                <option value="work">💼 Работа</option>
+                                <option value="personal">👤 Личное</option>
+                                <option value="health">💪 Здоровье</option>
+                                <option value="study">📚 Учёба</option>
+                                <option value="other">📌 Другое</option>
+                            </select>
+                            <button class="add-btn" onclick="addTask()">+ Добавить</button>
+                        </div>
+                    </div>
+
+                    <!-- Recurring Task Tab -->
+                    <div id="recurring" class="tab-content">
+                        <div class="input-row">
+                            <input type="text" id="recurringText" placeholder="Ежедневная задача (макс. 255 символов)" maxlength="255">
+                        </div>
+                        <div class="input-row">
+                            <input type="time" id="recurringTime" placeholder="Время выполнения">
+                            <select id="recurringCategory">
+                                <option value="work">💼 Работа</option>
+                                <option value="personal">👤 Личное</option>
+                                <option value="health">💪 Здоровье</option>
+                                <option value="study">📚 Учёба</option>
+                                <option value="other">📌 Другое</option>
+                            </select>
+                            <button class="add-btn" onclick="addRecurringTask()">+ Ежедневно</button>
+                        </div>
+                        <small style="color: var(--text-secondary); padding: 10px 0; display: block;">⭐ Эта задача будет добавляться на все дни недели</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TASK LIST -->
+            <div>
+                <div class="task-list" id="taskList"></div>
+            </div>
+
+            <!-- STATS SECTION -->
+            <div class="stats-card">
+                <h3>📊 Статистика дня</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Всего задач:</span>
+                    <span class="stat-value" id="totalTasks">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Выполнено:</span>
+                    <span class="stat-value" id="completedTasks">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Активность:</span>
+                    <span class="stat-value" id="activityLevel">0%</span>
+                </div>
+            </div>
+
+            <!-- DAILY REPORT -->
+            <div class="stats-card" id="reportCard" style="display: none;">
+                <h3>📈 Отчёт дня</h3>
+                <div class="stat-row">
+                    <span class="stat-label">Общая производительность:</span>
+                    <span class="stat-value" id="productivity">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Статус:</span>
+                    <span class="stat-value" id="status">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Не выполнено:</span>
+                    <span class="stat-value" id="missedTasks">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <p>CloudPlanner v2.0 • Твой помощник в управлении временем 📅</p>
+        </div>
     </div>
 </div>
 
 <script>
-    // --- 1. ТВОИ КЛЮЧИ FIREBASE ---
+    // ========== FIREBASE CONFIG ==========
     const firebaseConfig = {
         apiKey: "AIzaSyB-mMXLdI4rkEzmhLIi5dMhVmJY8ULGl18",
         authDomain: "myplanner-57c05.firebaseapp.com",
@@ -103,51 +921,239 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
+    // ========== GLOBAL STATE ==========
     const daysShort = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+    const categoryEmoji = {
+        work: '💼',
+        personal: '👤',
+        health: '💪',
+        study: '📚',
+        other: '📌'
+    };
+
     let selectedDay = new Date().getDay();
     let tasks = [];
+    let settings = {
+        darkTheme: false,
+        notifications: false,
+        reminderTime: 15,
+        reports: false
+    };
 
-    // --- 2. ЛОГИКА ВХОДА ---
-    function login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-    function logout() { auth.signOut(); }
+    // ========== AUTH ==========
+    function login() {
+        auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+    }
+
+    function logout() {
+        auth.signOut();
+    }
 
     auth.onAuthStateChanged(user => {
         if (user) {
             document.getElementById('loginOverlay').classList.add('hidden');
             document.getElementById('mainApp').classList.remove('hidden');
-            document.getElementById('userBadge').innerHTML = `<img src="${user.photoURL}"> <span>${user.displayName.split(' ')[0]}</span>`;
-            subscribeTasks(user.uid);
+            document.getElementById('userAvatar').src = user.photoURL;
+            document.getElementById('userName').textContent = user.displayName.split(' ')[0];
+            subscribeToData(user.uid);
         } else {
             document.getElementById('loginOverlay').classList.remove('hidden');
             document.getElementById('mainApp').classList.add('hidden');
         }
     });
 
-    // --- 3. СИНХРОНИЗАЦИЯ С ОБЛАКОМ ---
-    function subscribeTasks(uid) {
+    // ========== FIRESTORE SYNC ==========
+    function subscribeToData(uid) {
         db.collection("users").doc(uid).onSnapshot(doc => {
-            tasks = doc.exists ? doc.data().items : [];
-            renderUI();
+            if (doc.exists) {
+                const data = doc.data();
+                tasks = data.tasks || [];
+                settings = { ...settings, ...data.settings };
+                applySettings();
+                renderUI();
+            }
         });
     }
 
     async function sync() {
         if (auth.currentUser) {
-            await db.collection("users").doc(auth.currentUser.uid).set({ items: tasks });
+            await db.collection("users").doc(auth.currentUser.uid).set({
+                tasks,
+                settings
+            }, { merge: true });
         }
     }
 
-    // --- 4. ИНТЕРФЕЙС ---
+    // ========== SETTINGS ==========
+    function openSettings() {
+        document.getElementById('settingsModal').classList.add('active');
+        updateSettingsUI();
+    }
+
+    function closeSettings() {
+        document.getElementById('settingsModal').classList.remove('active');
+    }
+
+    function updateSettingsUI() {
+        const themeSwitch = document.getElementById('themeSwitch');
+        const notifSwitch = document.getElementById('notifSwitch');
+        const reportsSwitch = document.getElementById('reportsSwitch');
+        const reminderInput = document.getElementById('reminderTime');
+
+        if (settings.darkTheme) themeSwitch.classList.add('active');
+        else themeSwitch.classList.remove('active');
+
+        if (settings.notifications) notifSwitch.classList.add('active');
+        else notifSwitch.classList.remove('active');
+
+        if (settings.reports) reportsSwitch.classList.add('active');
+        else reportsSwitch.classList.remove('active');
+
+        reminderInput.value = settings.reminderTime;
+
+        document.getElementById('themeLabel').textContent = settings.darkTheme ? 'Включено' : 'Выключено';
+        document.getElementById('notifLabel').textContent = settings.notifications ? 'Включено' : 'Выключено';
+        document.getElementById('reportsLabel').textContent = settings.reports ? 'Включено' : 'Выключено';
+    }
+
+    function toggleTheme() {
+        settings.darkTheme = !settings.darkTheme;
+        applySettings();
+        sync();
+        updateSettingsUI();
+    }
+
+    function toggleNotifications() {
+        settings.notifications = !settings.notifications;
+        sync();
+        updateSettingsUI();
+    }
+
+    function toggleReports() {
+        settings.reports = !settings.reports;
+        sync();
+        updateSettingsUI();
+    }
+
+    function applySettings() {
+        const theme = settings.darkTheme ? 'dark' : 'light';
+        document.body.setAttribute('data-theme', theme);
+        document.getElementById('themeBtn').textContent = settings.darkTheme ? '☀️' : '🌙';
+    }
+
+    // ========== TABS ==========
+    function switchTab(e, tabName) {
+        document.querySelectorAll('.input-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+        document.getElementById(tabName).classList.add('active');
+    }
+
+    // ========== TASKS ==========
+    function addTask() {
+        const text = document.getElementById('taskText').value.trim();
+        const time = document.getElementById('taskTime').value;
+        const category = document.getElementById('taskCategory').value;
+
+        if (!text) return;
+
+        tasks.push({
+            id: Date.now().toString(),
+            text,
+            time,
+            day: selectedDay,
+            done: false,
+            category,
+            recurring: false,
+            createdAt: new Date().toISOString()
+        });
+
+        document.getElementById('taskText').value = '';
+        document.getElementById('taskTime').value = '';
+        sync();
+    }
+
+    function addRecurringTask() {
+        const text = document.getElementById('recurringText').value.trim();
+        const time = document.getElementById('recurringTime').value;
+        const category = document.getElementById('recurringCategory').value;
+
+        if (!text) return;
+
+        for (let day = 0; day < 7; day++) {
+            tasks.push({
+                id: `${Date.now()}-${day}`,
+                text,
+                time,
+                day,
+                done: false,
+                category,
+                recurring: true,
+                createdAt: new Date().toISOString()
+            });
+        }
+
+        document.getElementById('recurringText').value = '';
+        document.getElementById('recurringTime').value = '';
+        sync();
+    }
+
+    function toggleTask(id) {
+        const task = tasks.find(t => t.id === id);
+        if (task) {
+            task.done = !task.done;
+            sync();
+        }
+    }
+
+    function deleteTask(id) {
+        tasks = tasks.filter(t => t.id !== id);
+        sync();
+    }
+
+    // ========== NOTIFICATIONS ==========
+    function checkReminders() {
+        if (!settings.notifications) return;
+
+        const now = new Date();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+        tasks.forEach(task => {
+            if (!task.done && task.time && task.day === now.getDay()) {
+                const [h, m] = task.time.split(':').map(Number);
+                const taskMinutes = h * 60 + m;
+                const diffMinutes = taskMinutes - currentMinutes;
+
+                if (diffMinutes > 0 && diffMinutes <= settings.reminderTime && diffMinutes > settings.reminderTime - 1) {
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification('📌 Напоминание!', {
+                            body: `Через ${Math.round(diffMinutes)} мин: ${task.text}`,
+                            icon: '📅'
+                        });
+                    }
+                }
+            }
+        });
+    }
+
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+
+    setInterval(checkReminders, 60000);
+
+    // ========== UI RENDERING ==========
     function renderUI() {
         renderNav();
         renderTasks();
+        updateStats();
     }
 
     function renderNav() {
         const nav = document.getElementById('dayNav');
         nav.innerHTML = '';
         daysShort.forEach((day, i) => {
-            const count = tasks.filter(t => t.day === i).length;
+            const count = tasks.filter(t => t.day === i && !t.done).length;
             const btn = document.createElement('button');
             btn.className = `day-btn ${i === selectedDay ? 'active' : ''}`;
             btn.innerHTML = `<span>${day}</span><small>${count}</small>`;
@@ -158,61 +1164,84 @@
 
     function renderTasks() {
         const list = document.getElementById('taskList');
+        const dayTasks = tasks.filter(t => t.day === selectedDay)
+                             .sort((a, b) => (a.time > b.time ? 1 : -1));
+
+        if (dayTasks.length === 0) {
+            list.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">✨</div>
+                    <h3>Нет задач</h3>
+                    <p>Добавь свою первую задачу на этот день</p>
+                </div>
+            `;
+            return;
+        }
+
         list.innerHTML = '';
         const now = new Date();
-        const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
-
-        const dayTasks = tasks.filter(t => t.day === selectedDay)
-                             .sort((a,b) => (a.time > b.time ? 1 : -1));
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
         dayTasks.forEach(task => {
             let isLate = false;
+            const category = task.category || 'other';
+            const emoji = categoryEmoji[category];
+
             if (task.time && !task.done && now.getDay() === selectedDay) {
                 const [h, m] = task.time.split(':').map(Number);
-                if (currentTotalMinutes > (h * 60 + m)) isLate = true;
+                if (currentMinutes > (h * 60 + m)) isLate = true;
             }
 
             const div = document.createElement('div');
             div.className = `task-card ${task.done ? 'done' : ''}`;
+            
+            let tagsHTML = '';
+            if (task.time) tagsHTML += `<span class="tag">⏰ ${task.time}</span>`;
+            if (isLate) tagsHTML += `<span class="tag late">⚠️ Пропущено</span>`;
+            if (task.recurring) tagsHTML += `<span class="tag recurring">🔄 Ежедневно</span>`;
+
             div.innerHTML = `
-                <input type="checkbox" style="width:20px;height:20px" ${task.done ? 'checked' : ''} onchange="toggleTask('${task.id}')">
+                <input type="checkbox" class="task-checkbox" ${task.done ? 'checked' : ''} onchange="toggleTask('${task.id}')">
                 <div class="task-info">
-                    <span class="task-text">${task.text}</span>
-                    ${task.time ? `<span class="time-label">${task.time}</span>` : ''}
-                    ${isLate ? `<span class="late-tag">Пропущено</span>` : ''}
+                    <span class="task-text">${emoji} ${task.text}</span>
+                    <div class="task-meta">${tagsHTML}</div>
                 </div>
-                <button class="del-btn" onclick="deleteTask('${task.id}')">✕</button>
+                <div class="task-actions">
+                    <button class="del-btn" onclick="deleteTask('${task.id}')">✕</button>
+                </div>
             `;
             list.appendChild(div);
         });
     }
 
-    function addTask() {
-        const text = document.getElementById('taskText').value;
-        const time = document.getElementById('taskTime').value;
-        if (!text) return;
-        tasks.push({ id: Date.now().toString(), text, time, day: selectedDay, done: false });
-        document.getElementById('taskText').value = '';
-        sync();
+    function updateStats() {
+        const dayTasks = tasks.filter(t => t.day === selectedDay);
+        const completed = dayTasks.filter(t => t.done).length;
+        const total = dayTasks.length;
+        const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+        document.getElementById('totalTasks').textContent = total;
+        document.getElementById('completedTasks').textContent = completed;
+        document.getElementById('activityLevel').textContent = percent + '%';
+        document.getElementById('progressFill').style.width = percent + '%';
+
+        // Show report if enabled
+        if (settings.reports && new Date().getHours() >= 21) {
+            const missedCount = dayTasks.filter(t => !t.done).length;
+            const productivity = percent >= 80 ? '🔥 Отличная' : percent >= 60 ? '✅ Хорошая' : percent >= 30 ? '😐 Средняя' : '😴 Низкая';
+            const status = percent === 100 ? '🏆 Все задачи выполнены!' : percent === 0 ? '🛏️ Ничего не сделано' : `⏳ ${missedCount} задач осталось`;
+
+            document.getElementById('reportCard').style.display = 'block';
+            document.getElementById('productivity').textContent = productivity;
+            document.getElementById('status').textContent = status;
+            document.getElementById('missedTasks').textContent = missedCount;
+        }
     }
 
-    function toggleTask(id) {
-        const task = tasks.find(t => t.id === id);
-        if (task) task.done = !task.done;
-        sync();
-    }
-
-    function deleteTask(id) {
-        tasks = tasks.filter(t => t.id !== id);
-        sync();
-    }
-
-    function toggleTheme() {
-        const next = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        document.body.setAttribute('data-theme', next);
-        localStorage.setItem('theme', next);
-    }
-    if(localStorage.getItem('theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
+    // ========== INIT ==========
+    applySettings();
+    setInterval(renderUI, 60000);
 </script>
+
 </body>
 </html>
