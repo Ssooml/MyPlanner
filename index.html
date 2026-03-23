@@ -782,6 +782,20 @@
             </div>
         </div>
 
+        <hr style="border: none; border-top: 1px solid var(--border); margin: 25px 0;">
+
+        <h3 style="margin-bottom: 15px;">⚡ Фишки</h3>
+
+        <button class="add-btn" onclick="toggleFocusMode()" style="width: 100%; margin-bottom: 10px; background: #8b5cf6;">🎯 Фокус режим (убирает отвлечения)</button>
+
+        <button class="add-btn" onclick="getAIAdvice()" style="width: 100%; margin-bottom: 10px; background: #06b6d4;">🤖 AI совет для продуктивности</button>
+
+        <button class="add-btn" onclick="exportToCSV()" style="width: 100%; margin-bottom: 10px; background: #f59e0b;">📥 Экспортировать все задачи</button>
+
+        <button class="add-btn" onclick="resetStreak()" style="width: 100%; margin-bottom: 10px; background: var(--danger);">⚠️ Сброс серии дней</button>
+
+        <hr style="border: none; border-top: 1px solid var(--border); margin: 25px 0;">
+
         <button class="add-btn" onclick="logout()" style="width: 100%; background: var(--danger);">Выйти из аккаунта</button>
     </div>
 </div>
@@ -798,7 +812,6 @@
                 </div>
             </div>
             <div class="header-right">
-                <button class="icon-btn" onclick="openSettings()" title="Настройки">⚙️</button>
                 <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="Тема">🌙</button>
             </div>
         </div>
@@ -834,10 +847,10 @@
                         </div>
                     </div>
 
-                    <!-- Recurring Task Tab -->
+                    <!-- Multi-Day Task Tab -->
                     <div id="recurring" class="tab-content">
                         <div class="input-row">
-                            <input type="text" id="recurringText" placeholder="Ежедневная задача (макс. 255 символов)" maxlength="255">
+                            <input type="text" id="recurringText" placeholder="Задача для нескольких дней (макс. 255 символов)" maxlength="255">
                         </div>
                         <div class="input-row">
                             <input type="time" id="recurringTime" placeholder="Время выполнения">
@@ -848,9 +861,34 @@
                                 <option value="study">📚 Учёба</option>
                                 <option value="other">📌 Другое</option>
                             </select>
-                            <button class="add-btn" onclick="addRecurringTask()">+ Ежедневно</button>
                         </div>
-                        <small style="color: var(--text-secondary); padding: 10px 0; display: block;">⭐ Эта задача будет добавляться на все дни недели</small>
+                        <div style="margin: 15px 0;">
+                            <label style="font-weight: 600; font-size: 14px; margin-bottom: 10px; display: block;">Выбери дни:</label>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 8px;">
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px;">
+                                    <input type="checkbox" value="0" class="day-checkbox"> Вс
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px;">
+                                    <input type="checkbox" value="1" class="day-checkbox"> Пн
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px;">
+                                    <input type="checkbox" value="2" class="day-checkbox"> Вт
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px;">
+                                    <input type="checkbox" value="3" class="day-checkbox"> Ср
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px;">
+                                    <input type="checkbox" value="4" class="day-checkbox"> Чт
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px;">
+                                    <input type="checkbox" value="5" class="day-checkbox"> Пт
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px;">
+                                    <input type="checkbox" value="6" class="day-checkbox"> Сб
+                                </label>
+                            </div>
+                        </div>
+                        <button class="add-btn" onclick="addMultiDayTask()" style="width: 100%; margin-top: 10px;">+ Добавить на выбранные дни</button>
                     </div>
                 </div>
             </div>
@@ -880,6 +918,13 @@
                 </div>
             </div>
 
+            <!-- STREAK SECTION -->
+            <div class="stats-card" style="background: linear-gradient(135deg, var(--primary-light), var(--bg-secondary));">
+                <h3>🔥 Серия дней</h3>
+                <div style="font-size: 32px; font-weight: 700; color: var(--primary); margin: 15px 0; text-align: center;" id="streakCount">0</div>
+                <small style="color: var(--text-secondary); display: block; text-align: center;">Продолжай выполнять задачи каждый день!</small>
+            </div>
+
             <!-- DAILY REPORT -->
             <div class="stats-card" id="reportCard" style="display: none;">
                 <h3>📈 Отчёт дня</h3>
@@ -899,9 +944,7 @@
         </div>
 
         <!-- FOOTER -->
-        <div class="footer">
-            <p>CloudPlanner v2.0 • Твой помощник в управлении временем 📅</p>
-        </div>
+        <div class="footer"></div>
     </div>
 </div>
 
@@ -937,7 +980,10 @@
         darkTheme: false,
         notifications: false,
         reminderTime: 15,
-        reports: false
+        reports: false,
+        streak: 0,
+        lastCompletedDay: null,
+        focusMode: false
     };
 
     // ========== AUTH ==========
@@ -1073,16 +1119,20 @@
         sync();
     }
 
-    function addRecurringTask() {
+    function addMultiDayTask() {
         const text = document.getElementById('recurringText').value.trim();
         const time = document.getElementById('recurringTime').value;
         const category = document.getElementById('recurringCategory').value;
+        const selectedDays = Array.from(document.querySelectorAll('.day-checkbox:checked')).map(cb => parseInt(cb.value));
 
-        if (!text) return;
+        if (!text || selectedDays.length === 0) {
+            alert('Введи текст задачи и выбери хотя бы один день');
+            return;
+        }
 
-        for (let day = 0; day < 7; day++) {
+        selectedDays.forEach(day => {
             tasks.push({
-                id: `${Date.now()}-${day}`,
+                id: `${Date.now()}-${Math.random()}`,
                 text,
                 time,
                 day,
@@ -1091,10 +1141,11 @@
                 recurring: true,
                 createdAt: new Date().toISOString()
             });
-        }
+        });
 
         document.getElementById('recurringText').value = '';
         document.getElementById('recurringTime').value = '';
+        document.querySelectorAll('.day-checkbox').forEach(cb => cb.checked = false);
         sync();
     }
 
@@ -1225,6 +1276,10 @@
         document.getElementById('activityLevel').textContent = percent + '%';
         document.getElementById('progressFill').style.width = percent + '%';
 
+        // Update streak
+        calculateStreak();
+        document.getElementById('streakCount').textContent = settings.streak;
+
         // Show report if enabled
         if (settings.reports && new Date().getHours() >= 21) {
             const missedCount = dayTasks.filter(t => !t.done).length;
@@ -1235,6 +1290,111 @@
             document.getElementById('productivity').textContent = productivity;
             document.getElementById('status').textContent = status;
             document.getElementById('missedTasks').textContent = missedCount;
+        }
+    }
+
+    // ========== STREAK SYSTEM ==========
+    function calculateStreak() {
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        
+        const todayTasks = tasks.filter(t => t.day === today.getDay());
+        const allTodayComplete = todayTasks.length > 0 && todayTasks.every(t => t.done);
+
+        if (allTodayComplete && settings.lastCompletedDay !== todayStr) {
+            settings.streak++;
+            settings.lastCompletedDay = todayStr;
+            sync();
+        } else if (!allTodayComplete && settings.lastCompletedDay === todayStr) {
+            settings.streak = Math.max(0, settings.streak - 1);
+            settings.lastCompletedDay = null;
+            sync();
+        }
+    }
+
+    // ========== FOCUS MODE ==========
+    function toggleFocusMode() {
+        settings.focusMode = !settings.focusMode;
+        const mainApp = document.getElementById('mainApp');
+        
+        if (settings.focusMode) {
+            mainApp.style.filter = 'none';
+            document.querySelector('.input-section').style.display = 'none';
+            document.querySelector('.header').style.display = 'none';
+            alert('🎯 Фокус режим активирован! Только список задач. Нажми ESC для выхода.');
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') toggleFocusMode();
+            });
+        } else {
+            document.querySelector('.input-section').style.display = 'block';
+            document.querySelector('.header').style.display = 'flex';
+        }
+        
+        sync();
+    }
+
+    // ========== AI ADVICE ==========
+    function getAIAdvice() {
+        const advice = [
+            '💡 Совет: Начни день с самой сложной задачи. Так ты сэкономишь энергию.',
+            '🎯 Совет: Разбей большую задачу на несколько маленьких. Легче выполнять!',
+            '⏰ Совет: Используй правило Pomodoro: 25 мин работы, 5 мин перерыва.',
+            '🏃 Совет: Не откладывай задачи! Каждый день увеличивай свой streak 🔥',
+            '💪 Совет: Сделай перерыв после 3 часов работы. Твой мозг скажет спасибо.',
+            '📱 Совет: Убери телефон подальше, чтобы не отвлекаться.',
+            '🌙 Совет: Ложись спать вовремя. Сон = продуктивность.',
+            '🎨 Совет: Награди себя после выполнения сложной задачи!',
+            '📊 Совет: Отслеживай свой прогресс. Это мотивирует продолжать!',
+            '🚀 Совет: Прежде чем начать день, составь план. Это экономит 2 часа!'
+        ];
+        const random = advice[Math.floor(Math.random() * advice.length)];
+        alert(random);
+    }
+
+    // ========== EXPORT TO CSV ==========
+    function exportToCSV() {
+        if (tasks.length === 0) {
+            alert('Нет задач для экспорта');
+            return;
+        }
+
+        const headers = ['Задача', 'День недели', 'Время', 'Статус', 'Категория', 'Ежедневная'];
+        const rows = tasks.map(t => [
+            t.text,
+            daysShort[t.day],
+            t.time || '-',
+            t.done ? 'Выполнена' : 'Не выполнена',
+            categoryEmoji[t.category || 'other'] + ' ' + (t.category || 'other'),
+            t.recurring ? 'Да' : 'Нет'
+        ]);
+
+        let csv = headers.join(',') + '\n';
+        rows.forEach(row => {
+            csv += row.map(cell => `"${cell}"`).join(',') + '\n';
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `tasks-${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        alert('✅ Задачи экспортированы в CSV');
+    }
+
+    // ========== RESET STREAK ==========
+    function resetStreak() {
+        if (confirm('Ты уверен? Это удалит твою серию дней 🔥')) {
+            settings.streak = 0;
+            settings.lastCompletedDay = null;
+            sync();
+            renderUI();
         }
     }
 
