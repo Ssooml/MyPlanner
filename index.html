@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Планер</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -10,8 +10,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <style>
-        * { box-sizing: border-box; }
-        
         :root {
             --bg: #f5f5f5;
             --card: #ffffff;
@@ -28,17 +26,18 @@
             --border: #333333;
         }
 
+        * { box-sizing: border-box; }
         body { 
             font-family: system-ui, sans-serif;
             background: var(--bg);
             color: var(--text);
             margin: 0;
             padding: 0;
+            transition: background 0.3s, color 0.3s;
         }
 
         .hidden { display: none !important; }
 
-        /* LOGIN */
         .login-screen {
             position: fixed;
             inset: 0;
@@ -60,6 +59,7 @@
         .login-card h1 {
             margin: 0 0 20px;
             color: var(--primary);
+            font-size: 32px;
         }
 
         .google-btn {
@@ -76,7 +76,6 @@
 
         .google-btn:hover { opacity: 0.9; }
 
-        /* CONTAINER */
         .container {
             width: 100%;
             max-width: 600px;
@@ -84,7 +83,6 @@
             padding: 20px;
         }
 
-        /* HEADER */
         .header {
             display: flex;
             justify-content: space-between;
@@ -118,7 +116,6 @@
             cursor: pointer;
         }
 
-        /* SETTINGS MODAL */
         .modal {
             position: fixed;
             inset: 0;
@@ -208,7 +205,6 @@
             margin-top: 30px;
         }
 
-        /* DAYS */
         .days {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -241,7 +237,6 @@
             opacity: 0.8;
         }
 
-        /* INPUT */
         .input-area {
             background: var(--card);
             border: 1px solid var(--border);
@@ -284,11 +279,11 @@
 
         .add-btn:hover { opacity: 0.9; }
 
-        /* TASKS */
         .tasks {
             display: flex;
             flex-direction: column;
             gap: 12px;
+            margin-bottom: 30px;
         }
 
         .task {
@@ -329,7 +324,6 @@
             padding: 4px 8px;
             border-radius: 4px;
             display: inline-block;
-            margin-bottom: 6px;
         }
 
         .task-del {
@@ -341,12 +335,10 @@
             flex-shrink: 0;
         }
 
-        /* STATS */
         .stats {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
-            margin-top: 30px;
         }
 
         .stat-card {
@@ -393,12 +385,13 @@
 
         .streak-card h3 {
             color: white;
+            margin: 0 0 10px;
         }
 
         .streak-number {
             font-size: 48px;
             font-weight: 700;
-            margin: 15px 0;
+            margin: 0;
         }
 
         .empty {
@@ -437,11 +430,9 @@
 </head>
 <body data-theme="light">
 
-<!-- LOGIN -->
 <div id="loginScreen" class="login-screen">
     <div class="login-card">
         <h1>📋 Планер</h1>
-        <p>Твой персональный планировщик</p>
         <button class="google-btn" onclick="login()">
             <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20" style="margin-right: 8px;">
             Войти через Google
@@ -449,7 +440,6 @@
     </div>
 </div>
 
-<!-- SETTINGS -->
 <div id="settingsModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -462,19 +452,12 @@
             <button class="toggle" id="themeToggle" onclick="toggleTheme()"></button>
         </div>
 
-        <div class="setting">
-            <span>Напоминания</span>
-            <button class="toggle" id="notifToggle" onclick="toggleNotif()"></button>
-        </div>
-
         <button class="logout-btn" onclick="logout()">Выйти</button>
     </div>
 </div>
 
-<!-- APP -->
 <div id="app" class="hidden">
     <div class="container">
-        <!-- HEADER -->
         <div class="header">
             <div class="user-info" onclick="openSettings()">
                 <img id="userImg" src="">
@@ -483,20 +466,16 @@
             <button onclick="toggleTheme()">🌙</button>
         </div>
 
-        <!-- DAYS -->
         <div class="days" id="daysContainer"></div>
 
-        <!-- INPUT -->
         <div class="input-area">
             <input type="text" id="taskInput" placeholder="Задача...">
             <input type="time" id="timeInput">
             <button class="add-btn" onclick="addTask()">+</button>
         </div>
 
-        <!-- TASKS -->
         <div class="tasks" id="tasksList"></div>
 
-        <!-- STATS -->
         <div class="stats">
             <div class="stat-card">
                 <h3>📊 Статистика</h3>
@@ -515,18 +494,18 @@
 
             <div class="stat-card">
                 <h3>🔥 Серия</h3>
-                <div style="font-size: 32px; font-weight: 700; text-align: center; margin: 15px 0; color: var(--primary);" id="streakVal">0</div>
+                <div style="font-size: 32px; font-weight: 700; text-align: center; color: var(--primary);" id="streakVal">0</div>
             </div>
 
             <div class="streak-card">
-                <h3>Продолжай выполнять! 🔥</h3>
+                <h3>Продолжай! 🔥</h3>
+                <p style="margin: 0; font-size: 14px;">Выполняй все задачи каждый день</p>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // ===== FIREBASE =====
     const firebaseConfig = {
         apiKey: "AIzaSyB-mMXLdI4rkEzmhLIi5dMhVmJY8ULGl18",
         authDomain: "myplanner-57c05.firebaseapp.com",
@@ -541,33 +520,22 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // ===== STATE =====
     let user = null;
     let tasks = [];
     let selectedDay = new Date().getDay();
     let settings = {
         darkTheme: false,
-        notifications: false,
         streak: 0,
         lastCompletedDay: null
     };
 
     const daysNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
-    // ===== AUTH =====
     function login() {
         const provider = new firebase.auth.GoogleAuthProvider();
-        provider.addScope('profile');
-        provider.addScope('email');
-        
-        auth.signInWithPopup(provider)
-            .then(result => {
-                console.log('Вход успешен:', result.user.email);
-            })
-            .catch(err => {
-                console.error('Ошибка входа:', err.message);
-                alert('Ошибка при входе: ' + err.message);
-            });
+        auth.signInWithPopup(provider).catch(err => {
+            alert('Ошибка входа: ' + err.message);
+        });
     }
 
     function logout() {
@@ -581,7 +549,6 @@
             document.getElementById('app').classList.remove('hidden');
             document.getElementById('userImg').src = u.photoURL;
             document.getElementById('userName').textContent = u.displayName.split(' ')[0];
-            
             loadData();
         } else {
             user = null;
@@ -590,53 +557,32 @@
         }
     });
 
-    // ===== DATA SYNC =====
     function loadData() {
         if (!user) return;
 
-        db.collection("users").doc(user.uid).onSnapshot(
-            doc => {
-                if (doc.exists) {
-                    const data = doc.data();
-                    tasks = data.tasks || [];
-                    settings = { ...settings, ...data.settings };
-                    applySettings();
-                    render();
-                } else {
-                    saveData();
-                }
-            },
-            err => {
-                console.error(err);
+        db.collection("users").doc(user.uid).onSnapshot(doc => {
+            if (doc.exists) {
+                const data = doc.data();
+                if (data.tasks) tasks = data.tasks;
+                if (data.settings) settings = { ...settings, ...data.settings };
+                applySettings();
+                render();
+            } else {
+                saveData();
             }
-        );
+        });
     }
 
     function saveData() {
         if (!user) return;
-
-        db.collection("users").doc(user.uid).set(
-            { tasks, settings },
-            { merge: true }
-        ).catch(err => {
-            console.error(err);
-        });
+        db.collection("users").doc(user.uid).set({ tasks, settings }, { merge: true });
     }
 
-    function saveDataDebounce() {
-        clearTimeout(saveDataDebounce.timeout);
-        saveDataDebounce.timeout = setTimeout(saveData, 1000);
-    }
-
-    // ===== TASKS =====
     function addTask() {
         const text = document.getElementById('taskInput').value.trim();
         const time = document.getElementById('timeInput').value;
 
-        if (!text) {
-            alert('Введи текст');
-            return;
-        }
+        if (!text) return;
 
         tasks.push({
             id: Date.now().toString(),
@@ -649,7 +595,7 @@
         document.getElementById('taskInput').value = '';
         document.getElementById('timeInput').value = '';
 
-        saveDataDebounce();
+        saveData();
         render();
     }
 
@@ -658,14 +604,14 @@
         if (task) {
             task.done = !task.done;
             updateStreak();
-            saveDataDebounce();
+            saveData();
             render();
         }
     }
 
     function deleteTask(id) {
         tasks = tasks.filter(t => t.id !== id);
-        saveDataDebounce();
+        saveData();
         render();
     }
 
@@ -677,11 +623,10 @@
         if (allDone && settings.lastCompletedDay !== today) {
             settings.streak++;
             settings.lastCompletedDay = today;
-            saveDataDebounce();
+            saveData();
         }
     }
 
-    // ===== SETTINGS =====
     function openSettings() {
         document.getElementById('settingsModal').classList.add('active');
         updateSettingsUI();
@@ -694,13 +639,7 @@
     function toggleTheme() {
         settings.darkTheme = !settings.darkTheme;
         applySettings();
-        saveDataDebounce();
-    }
-
-    function toggleNotif() {
-        settings.notifications = !settings.notifications;
-        updateSettingsUI();
-        saveDataDebounce();
+        saveData();
     }
 
     function applySettings() {
@@ -711,10 +650,8 @@
 
     function updateSettingsUI() {
         document.getElementById('themeToggle').classList.toggle('active', settings.darkTheme);
-        document.getElementById('notifToggle').classList.toggle('active', settings.notifications);
     }
 
-    // ===== RENDER =====
     function render() {
         renderDays();
         renderTasks();
@@ -773,7 +710,6 @@
         document.getElementById('streakVal').textContent = settings.streak;
     }
 
-    // ===== INIT =====
     applySettings();
 </script>
 
