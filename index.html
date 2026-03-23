@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Cloud Planner</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg: #f0f2f5; --card: #ffffff; --text: #1c1e21;
+            --primary: #1a73e8; --accent: #e8f0fe; --border: #dadce0;
+        }
+        [data-theme="dark"] {
+            --bg: #121212; --card: #1e1e1e; --text: #e8eaed;
+            --primary: #8ab4f8; --accent: #2c3e50; --border: #3c4043;
+        }
+
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; transition: 0.3s; padding-bottom: 50px; }
+        .container { width: 100%; max-width: 500px; margin: 0 auto; padding: 15px; box-sizing: border-box; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .user-chip { display: flex; align-items: center; gap: 10px; background: var(--card); padding: 5px 12px; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .user-chip img { width: 24px; border-radius: 50%; }
+
+        .day-nav { display: flex; gap: 8px; overflow-x: auto; padding: 5px 0 15px; scrollbar-width: none; }
+        .day-nav::-webkit-scrollbar { display: none; }
+        .day-btn { flex: 0 0 55px; height: 65px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .day-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+        .input-card { background: var(--card); padding: 15px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .input-row { display: flex; gap: 8px; }
+        input { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; color: var(--text); font-size: 16px; outline: none; flex: 1; }
+        input[type="time"] { width: 100px; flex: none; }
+        .add-btn { background: var(--primary); color: white; border: none; padding: 0 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+
+        .task-card { display: flex; align-items: center; gap: 15px; background: var(--card); padding: 16px; border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border); }
+        .task-card.done { opacity: 0.5; }
+        .task-card.done .task-text { text-decoration: line-through; }
+        .task-info { flex: 1; }
+        .task-text { display: block; font-weight: 500; margin-bottom: 4px; }
+        .time-label { font-size: 12px; background: var(--accent); color: var(--primary); padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .late-tag { font-size: 11px; color: #ff5252; font-weight: bold; margin-left: 8px; }
+        
+        .del-btn { background: none; border: none; color: #ff5252; cursor: pointer; font-size: 20px; }
+
+        .login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
+        .google-btn { background: white; color: #444; border: 1px solid #ddd; padding: 12px 24px; border-radius: 25px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body data-theme="light">
+
+<div id="loginOverlay" class="login-screen">
+    <h1 style="color:var(--primary)">Daily Planner</h1>
+    <p>Синхронизация задач через облако</p>
+    <button class="google-btn" onclick="login()">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20">
+        Войти через Google
+    </button>
+</div>
+
+<div id="mainApp" class="container hidden">
+    <div class="header">
+        <div class="user-chip" id="userBadge"></div>
+        <button onclick="toggleTheme()" style="background:none; border:none; font-size:22px; cursor:pointer">🌓</button>
+    </div>
+
+    <div class="day-nav" id="dayNav"></div>
+
+    <div class="input-card">
+        <div class="input-row">
+            <input type="text" id="taskText" placeholder="Что планируем?">
+            <input type="time" id="taskTime">
+            <button class="add-btn" onclick="addTask()">+</button>
+        </div>
+    </div>
+
+    <div id="taskList"></div>
+    
+    <div style="text-align: center; margin-top: 30px;">
+        <button onclick="logout()" style="background:none; border:none; color:var(--text); opacity:0.4; cursor:pointer">Выйти</button>
+    </div>
+</div>
+
+<script>
+    // --- 1. ТВОИ КЛЮЧИ FIREBASE ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyB-mMXLdI4rkEzmhLIi5dMhVmJY8ULGl18",
+        authDomain: "myplanner-57c05.firebaseapp.com",
+        projectId: "myplanner-57c05",
+        storageBucket: "myplanner-57c05.firebasestorage.app",
+        messagingSenderId: "135786783705",
+        appId: "1:135786783705:web:6441c0a6545ebe1ee0efc8",
+        measurementId: "G-PHMYDC3VEQ"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const daysShort = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+    let selectedDay = new Date().getDay();
+    let tasks = [];
+
+    // --- 2. ЛОГИКА ВХОДА ---
+    function login() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+    function logout() { auth.signOut(); }
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('userBadge').innerHTML = `<img src="${user.photoURL}"> <span>${user.displayName.split(' ')[0]}</span>`;
+            subscribeTasks(user.uid);
+        } else {
+            document.getElementById('loginOverlay').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+        }
+    });
+
+    // --- 3. СИНХРОНИЗАЦИЯ С ОБЛАКОМ ---
+    function subscribeTasks(uid) {
+        db.collection("users").doc(uid).onSnapshot(doc => {
+            tasks = doc.exists ? doc.data().items : [];
+            renderUI();
+        });
+    }
+
+    async function sync() {
+        if (auth.currentUser) {
+            await db.collection("users").doc(auth.currentUser.uid).set({ items: tasks });
+        }
+    }
+
+    // --- 4. ИНТЕРФЕЙС ---
+    function renderUI() {
+        renderNav();
+        renderTasks();
+    }
+
+    function renderNav() {
+        const nav = document.getElementById('dayNav');
+        nav.innerHTML = '';
+        daysShort.forEach((day, i) => {
+            const count = tasks.filter(t => t.day === i).length;
+            const btn = document.createElement('button');
+            btn.className = `day-btn ${i === selectedDay ? 'active' : ''}`;
+            btn.innerHTML = `<span>${day}</span><small>${count}</small>`;
+            btn.onclick = () => { selectedDay = i; renderUI(); };
+            nav.appendChild(btn);
+        });
+    }
+
+    function renderTasks() {
+        const list = document.getElementById('taskList');
+        list.innerHTML = '';
+        const now = new Date();
+        const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+
+        const dayTasks = tasks.filter(t => t.day === selectedDay)
+                             .sort((a,b) => (a.time > b.time ? 1 : -1));
+
+        dayTasks.forEach(task => {
+            let isLate = false;
+            if (task.time && !task.done && now.getDay() === selectedDay) {
+                const [h, m] = task.time.split(':').map(Number);
+                if (currentTotalMinutes > (h * 60 + m)) isLate = true;
+            }
+
+            const div = document.createElement('div');
+            div.className = `task-card ${task.done ? 'done' : ''}`;
+            div.innerHTML = `
+                <input type="checkbox" style="width:20px;height:20px" ${task.done ? 'checked' : ''} onchange="toggleTask('${task.id}')">
+                <div class="task-info">
+                    <span class="task-text">${task.text}</span>
+                    ${task.time ? `<span class="time-label">${task.time}</span>` : ''}
+                    ${isLate ? `<span class="late-tag">Пропущено</span>` : ''}
+                </div>
+                <button class="del-btn" onclick="deleteTask('${task.id}')">✕</button>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function addTask() {
+        const text = document.getElementById('taskText').value;
+        const time = document.getElementById('taskTime').value;
+        if (!text) return;
+        tasks.push({ id: Date.now().toString(), text, time, day: selectedDay, done: false });
+        document.getElementById('taskText').value = '';
+        sync();
+    }
+
+    function toggleTask(id) {
+        const task = tasks.find(t => t.id === id);
+        if (task) task.done = !task.done;
+        sync();
+    }
+
+    function deleteTask(id) {
+        tasks = tasks.filter(t => t.id !== id);
+        sync();
+    }
+
+    function toggleTheme() {
+        const next = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.body.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+    }
+    if(localStorage.getItem('theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
+</script>
+</body>
+</html>
