@@ -11,111 +11,245 @@
 
     <style>
         :root {
-            --bg: #f5f5f5;
-            --card: #ffffff;
-            --text: #1a1a1a;
-            --primary: #6366f1;
-            --border: #e0e0e0;
+            --bg: #f0f2f5; --card: #ffffff; --text: #1c1e21;
+            --primary: #1a73e8; --accent: #e8f0fe; --border: #dadce0;
         }
-        
         [data-theme="dark"] {
-            --bg: #0a0a0a;
-            --card: #1a1a1a;
-            --text: #f0f0f0;
-            --primary: #818cf8;
-            --border: #333333;
+            --bg: #121212; --card: #1e1e1e; --text: #e8eaed;
+            --primary: #8ab4f8; --accent: #2c3e50; --border: #3c4043;
         }
 
         * { box-sizing: border-box; }
         body { 
-            font-family: system-ui, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 0;
-            transition: background 0.3s, color 0.3s;
+            font-family: -apple-system, system-ui, sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            margin: 0; 
+            transition: 0.3s; 
+            padding-bottom: 50px;
+        }
+        
+        .container { 
+            width: 100%; 
+            max-width: 500px; 
+            margin: 0 auto; 
+            padding: 15px; 
+            box-sizing: border-box; 
+        }
+        
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+        }
+        
+        .user-chip { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            background: var(--card); 
+            padding: 5px 12px; 
+            border-radius: 20px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+        
+        .user-chip img { width: 24px; border-radius: 50%; }
+
+        .day-nav { 
+            display: flex; 
+            gap: 8px; 
+            overflow-x: auto; 
+            padding: 5px 0 15px; 
+            scrollbar-width: none; 
+            margin-bottom: 20px;
+        }
+        
+        .day-nav::-webkit-scrollbar { display: none; }
+        
+        .day-btn { 
+            flex: 0 0 55px; 
+            height: 65px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border); 
+            background: var(--card); 
+            color: var(--text); 
+            cursor: pointer; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .day-btn.active { 
+            background: var(--primary); 
+            color: #fff; 
+            border-color: var(--primary); 
         }
 
-        .hidden { display: none !important; }
+        .input-card { 
+            background: var(--card); 
+            padding: 15px; 
+            border-radius: 16px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+            margin-bottom: 20px; 
+        }
+        
+        .input-row { 
+            display: flex; 
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        input { 
+            background: var(--bg); 
+            border: 1px solid var(--border); 
+            border-radius: 10px; 
+            padding: 12px; 
+            color: var(--text); 
+            font-size: 16px; 
+            outline: none; 
+            flex: 1;
+            font-family: inherit;
+        }
+        
+        input[type="time"] { width: 100px; flex: none; }
+        
+        .add-btn { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 0 20px; 
+            border-radius: 10px; 
+            font-weight: bold; 
+            cursor: pointer;
+            white-space: nowrap;
+        }
 
-        .login-screen {
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(135deg, var(--primary), #a78bfa);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
+        .days-selector {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin: 12px 0;
+        }
+
+        .day-checkbox {
+            padding: 8px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .day-checkbox:has(input:checked) {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .day-checkbox input {
+            display: none;
+        }
+
+        .task-card { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            background: var(--card); 
+            padding: 16px; 
+            border-radius: 12px; 
+            margin-bottom: 10px; 
+            border: 1px solid var(--border);
+        }
+        
+        .task-card.done { opacity: 0.5; }
+        .task-card.done .task-text { text-decoration: line-through; }
+        
+        .task-info { flex: 1; }
+        .task-text { display: block; font-weight: 500; margin-bottom: 4px; }
+        .time-label { 
+            font-size: 12px; 
+            background: var(--accent); 
+            color: var(--primary); 
+            padding: 2px 6px; 
+            border-radius: 4px; 
+            font-weight: bold;
+            display: inline-block;
+        }
+        .late-tag { 
+            font-size: 11px; 
+            color: #ff5252; 
+            font-weight: bold; 
+            margin-left: 8px;
+            display: inline-block;
+        }
+        
+        .del-btn { 
+            background: none; 
+            border: none; 
+            color: #ff5252; 
+            cursor: pointer; 
+            font-size: 20px;
+            opacity: 0.6;
+        }
+
+        .del-btn:hover {
+            opacity: 1;
+        }
+
+        .login-screen { 
+            position: fixed; 
+            inset: 0; 
+            background: var(--bg); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 1000;
+            gap: 20px;
         }
 
         .login-card {
             background: var(--card);
-            padding: 50px 40px;
-            border-radius: 20px;
+            padding: 40px 30px;
+            border-radius: 16px;
             text-align: center;
-            max-width: 400px;
+            max-width: 380px;
         }
 
         .login-card h1 {
-            margin: 0 0 20px;
             color: var(--primary);
-            font-size: 32px;
+            margin: 0 0 15px;
+            font-size: 28px;
         }
 
-        .google-btn {
-            background: white;
-            color: #333;
-            border: none;
-            padding: 14px 28px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
+        .google-btn { 
+            background: white; 
+            color: #444; 
+            border: 1px solid #ddd; 
+            padding: 12px 24px; 
+            border-radius: 25px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px;
             width: 100%;
-            font-size: 16px;
+            justify-content: center;
         }
 
-        .google-btn:hover { opacity: 0.9; }
-
-        .container {
-            width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
+        .google-btn:hover {
+            opacity: 0.9;
         }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-        }
-
-        .user-info img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-        }
-
-        .user-info span {
-            font-weight: 600;
-        }
-
-        .header button {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-        }
-
+        /* MODAL */
         .modal {
             position: fixed;
             inset: 0;
@@ -136,6 +270,8 @@
             padding: 30px;
             max-width: 450px;
             width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
         .modal-header {
@@ -154,6 +290,7 @@
             border: none;
             font-size: 24px;
             cursor: pointer;
+            color: var(--text);
         }
 
         .setting {
@@ -171,6 +308,7 @@
             border-radius: 14px;
             cursor: pointer;
             position: relative;
+            transition: background 0.3s;
         }
 
         .toggle::after {
@@ -194,7 +332,7 @@
         }
 
         .logout-btn {
-            background: #ef4444;
+            background: #ff5252;
             color: white;
             border: none;
             padding: 12px 24px;
@@ -205,239 +343,59 @@
             margin-top: 30px;
         }
 
-        .days {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 10px;
-            margin-bottom: 30px;
+        .logout-btn:hover {
+            opacity: 0.9;
         }
 
-        .day-btn {
-            background: var(--card);
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            padding: 12px;
-            cursor: pointer;
-            text-align: center;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
+        .hidden { display: none !important; }
 
-        .day-btn:hover { transform: translateY(-2px); }
-
-        .day-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        .day-btn small {
-            display: block;
-            font-size: 12px;
-            opacity: 0.8;
-        }
-
-        .input-area {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-            display: flex;
-            gap: 10px;
-        }
-
-        input[type="text"],
-        input[type="time"] {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 10px;
-            color: var(--text);
-            font-size: 14px;
-            font-family: inherit;
-        }
-
-        input[type="text"] {
-            flex: 1;
-        }
-
-        input[type="time"] {
-            width: 120px;
-        }
-
-        .add-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .add-btn:hover { opacity: 0.9; }
-
-        .tasks {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 30px;
-        }
-
-        .task {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 16px;
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-        }
-
-        .task input[type="checkbox"] {
-            width: 22px;
-            height: 22px;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-
-        .task-content {
-            flex: 1;
-        }
-
-        .task-text {
-            font-weight: 500;
-            margin-bottom: 6px;
-            display: block;
-        }
-
-        .task.done .task-text {
-            text-decoration: line-through;
-            opacity: 0.6;
-        }
-
-        .task-time {
-            font-size: 12px;
-            background: var(--bg);
-            padding: 4px 8px;
-            border-radius: 4px;
-            display: inline-block;
-        }
-
-        .task-del {
-            background: none;
-            border: none;
-            color: #ef4444;
-            cursor: pointer;
-            font-size: 18px;
-            flex-shrink: 0;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        .stat-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-        }
-
-        .stat-card h3 {
-            margin: 0 0 15px;
-            font-size: 16px;
-        }
-
-        .progress {
-            width: 100%;
-            height: 8px;
-            background: var(--border);
-            border-radius: 4px;
-            overflow: hidden;
-            margin-bottom: 12px;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: #10b981;
-            transition: width 0.3s;
-        }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-
-        .streak-card {
-            grid-column: 1 / -1;
-            text-align: center;
-            background: linear-gradient(135deg, var(--primary), #a78bfa);
-            color: white;
-            border: none;
-        }
-
-        .streak-card h3 {
-            color: white;
-            margin: 0 0 10px;
-        }
-
-        .streak-number {
-            font-size: 48px;
-            font-weight: 700;
-            margin: 0;
-        }
-
-        .empty {
+        .empty-state {
             text-align: center;
             padding: 40px 20px;
             color: #999;
         }
 
-        .empty-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
+        .streak-display {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .streak-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--primary);
         }
 
         @media (max-width: 600px) {
-            .input-area {
+            .days-selector {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .input-row {
                 flex-direction: column;
             }
 
             input[type="time"] {
                 width: 100%;
             }
-
-            .days {
-                grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
-            }
-
-            .stats {
-                grid-template-columns: 1fr;
-            }
-
-            .streak-card {
-                grid-column: 1;
-            }
         }
     </style>
 </head>
 <body data-theme="light">
 
-<div id="loginScreen" class="login-screen">
+<div id="loginOverlay" class="login-screen">
     <div class="login-card">
         <h1>📋 Планер</h1>
-        <button class="google-btn" onclick="login()">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20" style="margin-right: 8px;">
-            Войти через Google
-        </button>
+        <p style="margin: 0; color: var(--text); opacity: 0.7;">Управляй задачами в облаке</p>
     </div>
+    <button class="google-btn" onclick="login()">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20">
+        Войти через Google
+    </button>
 </div>
 
 <div id="settingsModal" class="modal">
@@ -452,56 +410,43 @@
             <button class="toggle" id="themeToggle" onclick="toggleTheme()"></button>
         </div>
 
+        <hr style="border: none; border-top: 1px solid var(--border); margin: 20px 0;">
+
         <button class="logout-btn" onclick="logout()">Выйти</button>
     </div>
 </div>
 
-<div id="app" class="hidden">
-    <div class="container">
-        <div class="header">
-            <div class="user-info" onclick="openSettings()">
-                <img id="userImg" src="">
-                <span id="userName">Юзер</span>
-            </div>
-            <button onclick="toggleTheme()">🌙</button>
+<div id="mainApp" class="container hidden">
+    <div class="header">
+        <div class="user-chip" id="userBadge" onclick="openSettings()"></div>
+        <button onclick="toggleTheme()" style="background:none; border:none; font-size:22px; cursor:pointer">🌓</button>
+    </div>
+
+    <div class="day-nav" id="dayNav"></div>
+
+    <div class="input-card">
+        <div class="input-row">
+            <input type="text" id="taskText" placeholder="Что планируем?">
+            <input type="time" id="taskTime">
+        </div>
+        
+        <div>
+            <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 8px;">На какие дни?</label>
+            <div class="days-selector" id="daysSelector"></div>
         </div>
 
-        <div class="days" id="daysContainer"></div>
+        <button class="add-btn" onclick="addTask()" style="width: 100%; padding: 12px 0;">+ Добавить</button>
+    </div>
 
-        <div class="input-area">
-            <input type="text" id="taskInput" placeholder="Задача...">
-            <input type="time" id="timeInput">
-            <button class="add-btn" onclick="addTask()">+</button>
-        </div>
+    <div id="taskList"></div>
 
-        <div class="tasks" id="tasksList"></div>
-
-        <div class="stats">
-            <div class="stat-card">
-                <h3>📊 Статистика</h3>
-                <div class="progress">
-                    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
-                </div>
-                <div class="stat-row">
-                    <span>Всего:</span>
-                    <span id="totalCount">0</span>
-                </div>
-                <div class="stat-row">
-                    <span>Выполнено:</span>
-                    <span id="doneCount">0</span>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <h3>🔥 Серия</h3>
-                <div style="font-size: 32px; font-weight: 700; text-align: center; color: var(--primary);" id="streakVal">0</div>
-            </div>
-
-            <div class="streak-card">
-                <h3>Продолжай! 🔥</h3>
-                <p style="margin: 0; font-size: 14px;">Выполняй все задачи каждый день</p>
-            </div>
-        </div>
+    <div class="streak-display" id="streakDisplay" style="display: none;">
+        <span style="font-size: 14px; color: var(--text); opacity: 0.7;">🔥 Твоя серия</span>
+        <div class="streak-number" id="streakValue">0</div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 30px;">
+        <button onclick="logout()" style="background:none; border:none; color:var(--text); opacity:0.4; cursor:pointer; font-size: 12px;">Выйти</button>
     </div>
 </div>
 
@@ -520,17 +465,17 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    let user = null;
-    let tasks = [];
+    const daysShort = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
     let selectedDay = new Date().getDay();
+    let tasks = [];
+    let selectedDays = [selectedDay];
     let settings = {
         darkTheme: false,
         streak: 0,
         lastCompletedDay: null
     };
 
-    const daysNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-
+    // ===== AUTH =====
     function login() {
         const provider = new firebase.auth.GoogleAuthProvider();
         auth.signInWithPopup(provider).catch(err => {
@@ -542,31 +487,27 @@
         auth.signOut();
     }
 
-    auth.onAuthStateChanged(u => {
-        if (u) {
-            user = u;
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
-            document.getElementById('userImg').src = u.photoURL;
-            document.getElementById('userName').textContent = u.displayName.split(' ')[0];
-            loadData();
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('userBadge').innerHTML = `<img src="${user.photoURL}"> <span>${user.displayName.split(' ')[0]}</span>`;
+            subscribeToData(user.uid);
         } else {
-            user = null;
-            document.getElementById('loginScreen').classList.remove('hidden');
-            document.getElementById('app').classList.add('hidden');
+            document.getElementById('loginOverlay').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
         }
     });
 
-    function loadData() {
-        if (!user) return;
-
-        db.collection("users").doc(user.uid).onSnapshot(doc => {
+    // ===== DATA SYNC =====
+    function subscribeToData(uid) {
+        db.collection("users").doc(uid).onSnapshot(doc => {
             if (doc.exists) {
                 const data = doc.data();
-                if (data.tasks) tasks = data.tasks;
-                if (data.settings) settings = { ...settings, ...data.settings };
+                tasks = data.tasks || [];
+                settings = { ...settings, ...data.settings };
                 applySettings();
-                render();
+                renderUI();
             } else {
                 saveData();
             }
@@ -574,29 +515,114 @@
     }
 
     function saveData() {
-        if (!user) return;
-        db.collection("users").doc(user.uid).set({ tasks, settings }, { merge: true });
+        if (!auth.currentUser) return;
+        db.collection("users").doc(auth.currentUser.uid).set({ tasks, settings }, { merge: true });
+    }
+
+    // ===== UI =====
+    function renderUI() {
+        renderNav();
+        renderDaysSelector();
+        renderTasks();
+        updateStreak();
+    }
+
+    function renderNav() {
+        const nav = document.getElementById('dayNav');
+        nav.innerHTML = '';
+        daysShort.forEach((day, i) => {
+            const count = tasks.filter(t => t.day === i && !t.done).length;
+            const btn = document.createElement('button');
+            btn.className = `day-btn ${i === selectedDay ? 'active' : ''}`;
+            btn.innerHTML = `<div>${day}</div><small>${count}</small>`;
+            btn.onclick = () => {
+                selectedDay = i;
+                selectedDays = [i];
+                renderUI();
+            };
+            nav.appendChild(btn);
+        });
+    }
+
+    function renderDaysSelector() {
+        const selector = document.getElementById('daysSelector');
+        selector.innerHTML = '';
+        daysShort.forEach((day, i) => {
+            const label = document.createElement('label');
+            label.className = 'day-checkbox';
+            label.innerHTML = `<input type="checkbox" value="${i}" ${selectedDays.includes(i) ? 'checked' : ''}> ${day}`;
+            label.onclick = (e) => {
+                const input = label.querySelector('input');
+                if (input.checked) {
+                    if (!selectedDays.includes(i)) selectedDays.push(i);
+                } else {
+                    selectedDays = selectedDays.filter(d => d !== i);
+                }
+                label.classList.toggle('checked');
+            };
+            selector.appendChild(label);
+        });
+    }
+
+    function renderTasks() {
+        const list = document.getElementById('taskList');
+        const dayTasks = tasks.filter(t => t.day === selectedDay).sort((a, b) => (a.time > b.time ? 1 : -1));
+
+        if (dayTasks.length === 0) {
+            list.innerHTML = '<div class="empty-state"><div style="font-size: 48px; margin-bottom: 15px;">✨</div><p>Нет задач на этот день</p></div>';
+            return;
+        }
+
+        const now = new Date();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+        list.innerHTML = dayTasks.map(task => {
+            let isLate = false;
+            if (task.time && !task.done && now.getDay() === selectedDay) {
+                const [h, m] = task.time.split(':').map(Number);
+                if (currentMinutes > (h * 60 + m)) isLate = true;
+            }
+
+            return `
+                <div class="task-card ${task.done ? 'done' : ''}">
+                    <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleTask('${task.id}')" style="width: 20px; height: 20px;">
+                    <div class="task-info">
+                        <span class="task-text">${task.text}</span>
+                        ${task.time ? `<span class="time-label">${task.time}</span>` : ''}
+                        ${isLate ? `<span class="late-tag">⚠️ Пропущено</span>` : ''}
+                    </div>
+                    <button class="del-btn" onclick="deleteTask('${task.id}')">✕</button>
+                </div>
+            `;
+        }).join('');
     }
 
     function addTask() {
-        const text = document.getElementById('taskInput').value.trim();
-        const time = document.getElementById('timeInput').value;
+        const text = document.getElementById('taskText').value.trim();
+        const time = document.getElementById('taskTime').value;
 
-        if (!text) return;
+        if (!text || selectedDays.length === 0) {
+            alert('Введи текст и выбери хотя бы один день');
+            return;
+        }
 
-        tasks.push({
-            id: Date.now().toString(),
-            text,
-            time,
-            day: selectedDay,
-            done: false
+        selectedDays.forEach(day => {
+            tasks.push({
+                id: Date.now().toString() + Math.random(),
+                text,
+                time,
+                day,
+                done: false,
+                createdAt: new Date().toISOString()
+            });
         });
 
-        document.getElementById('taskInput').value = '';
-        document.getElementById('timeInput').value = '';
+        document.getElementById('taskText').value = '';
+        document.getElementById('taskTime').value = '';
+        selectedDays = [selectedDay];
 
         saveData();
-        render();
+        renderUI();
     }
 
     function toggleTask(id) {
@@ -605,14 +631,14 @@
             task.done = !task.done;
             updateStreak();
             saveData();
-            render();
+            renderUI();
         }
     }
 
     function deleteTask(id) {
         tasks = tasks.filter(t => t.id !== id);
         saveData();
-        render();
+        renderUI();
     }
 
     function updateStreak() {
@@ -625,11 +651,15 @@
             settings.lastCompletedDay = today;
             saveData();
         }
+
+        document.getElementById('streakDisplay').style.display = settings.streak > 0 ? 'block' : 'none';
+        document.getElementById('streakValue').textContent = settings.streak;
     }
 
+    // ===== SETTINGS =====
     function openSettings() {
         document.getElementById('settingsModal').classList.add('active');
-        updateSettingsUI();
+        document.getElementById('themeToggle').classList.toggle('active', settings.darkTheme);
     }
 
     function closeSettings() {
@@ -645,72 +675,11 @@
     function applySettings() {
         const theme = settings.darkTheme ? 'dark' : 'light';
         document.body.setAttribute('data-theme', theme);
-        document.getElementById('themeToggle').classList.toggle('active', settings.darkTheme);
     }
 
-    function updateSettingsUI() {
-        document.getElementById('themeToggle').classList.toggle('active', settings.darkTheme);
-    }
-
-    function render() {
-        renderDays();
-        renderTasks();
-        renderStats();
-    }
-
-    function renderDays() {
-        const container = document.getElementById('daysContainer');
-        container.innerHTML = '';
-
-        daysNames.forEach((name, i) => {
-            const count = tasks.filter(t => t.day === i && !t.done).length;
-            const btn = document.createElement('button');
-            btn.className = 'day-btn' + (i === selectedDay ? ' active' : '');
-            btn.innerHTML = `${name}<small>${count}</small>`;
-            btn.onclick = () => {
-                selectedDay = i;
-                render();
-            };
-            container.appendChild(btn);
-        });
-    }
-
-    function renderTasks() {
-        const container = document.getElementById('tasksList');
-        const dayTasks = tasks
-            .filter(t => t.day === selectedDay)
-            .sort((a, b) => (a.time > b.time ? 1 : -1));
-
-        if (dayTasks.length === 0) {
-            container.innerHTML = '<div class="empty"><div class="empty-icon">✨</div><p>Нет задач</p></div>';
-            return;
-        }
-
-        container.innerHTML = dayTasks.map(t => `
-            <div class="task ${t.done ? 'done' : ''}">
-                <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask('${t.id}')">
-                <div class="task-content">
-                    <span class="task-text">${t.text}</span>
-                    ${t.time ? `<div class="task-time">⏰ ${t.time}</div>` : ''}
-                </div>
-                <button class="task-del" onclick="deleteTask('${t.id}')">✕</button>
-            </div>
-        `).join('');
-    }
-
-    function renderStats() {
-        const dayTasks = tasks.filter(t => t.day === selectedDay);
-        const done = dayTasks.filter(t => t.done).length;
-        const total = dayTasks.length;
-        const percent = total === 0 ? 0 : Math.round((done / total) * 100);
-
-        document.getElementById('progressBar').style.width = percent + '%';
-        document.getElementById('totalCount').textContent = total;
-        document.getElementById('doneCount').textContent = done;
-        document.getElementById('streakVal').textContent = settings.streak;
-    }
-
+    // INIT
     applySettings();
+    renderUI();
 </script>
 
 </body>
