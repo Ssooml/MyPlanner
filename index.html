@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CloudPlanner - Твой планировщик</title>
+    <title>Твой планировщик</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -1009,25 +1009,75 @@
     });
 
     // ========== FIRESTORE SYNC ==========
+    let syncTimeout;
+    
     function subscribeToData(uid) {
         db.collection("users").doc(uid).onSnapshot(doc => {
             if (doc.exists) {
                 const data = doc.data();
-                tasks = data.tasks || [];
-                settings = { ...settings, ...data.settings };
+                
+                // Загружаем данные с сервера
+                if (data.tasks) tasks = data.tasks;
+                if (data.settings) {
+                    // Сохраняем важные локальные параметры
+                    const localSettings = { ...settings };
+                    settings = { ...localSettings, ...data.settings };
+                }
+                
+                // Кешируем локально
+                localStorage.setItem('cloudplanner_tasks', JSON.stringify(tasks));
+                localStorage.setItem('cloudplanner_settings', JSON.stringify(settings));
+                
                 applySettings();
                 renderUI();
+                console.log('✅ Данные загружены с облака');
+            } else {
+                console.log('📝 Первый вход - создаю документ');
+                sync();
             }
+        }, error => {
+            console.error('❌ Ошибка синхронизации:', error);
+            // Если ошибка - загружаем из локального кеша
+            loadFromCache();
         });
     }
 
     async function sync() {
-        if (auth.currentUser) {
-            await db.collection("users").doc(auth.currentUser.uid).set({
-                tasks,
-                settings
-            }, { merge: true });
-        }
+        if (!auth.currentUser) return;
+        
+        clearTimeout(syncTimeout);
+        syncTimeout = setTimeout(async () => {
+            try {
+                // Добавляем временную метку
+                const dataToSync = {
+                    tasks,
+                    settings,
+                    lastUpdated: new Date().toISOString()
+                };
+                
+                await db.collection("users").doc(auth.currentUser.uid).set(dataToSync, { merge: true });
+                localStorage.setItem('cloudplanner_tasks', JSON.stringify(tasks));
+                localStorage.setItem('cloudplanner_settings', JSON.stringify(settings));
+                console.log('💾 Данные сохранены в облако');
+            } catch (error) {
+                console.error('❌ Ошибка при сохранении:', error);
+                // Кешируем локально даже при ошибке
+                localStorage.setItem('cloudplanner_tasks', JSON.stringify(tasks));
+                localStorage.setItem('cloudplanner_settings', JSON.stringify(settings));
+            }
+        }, 1000); // Задержка 1 сек чтобы избежать лишних записей
+    }
+
+    function loadFromCache() {
+        console.log('📦 Загружаю из локального кеша');
+        const cachedTasks = localStorage.getItem('cloudplanner_tasks');
+        const cachedSettings = localStorage.getItem('cloudplanner_settings');
+        
+        if (cachedTasks) tasks = JSON.parse(cachedTasks);
+        if (cachedSettings) settings = { ...settings, ...JSON.parse(cachedSettings) };
+        
+        applySettings();
+        renderUI();
     }
 
     // ========== SETTINGS ==========
@@ -1060,6 +1110,12 @@
         document.getElementById('themeLabel').textContent = settings.darkTheme ? 'Включено' : 'Выключено';
         document.getElementById('notifLabel').textContent = settings.notifications ? 'Включено' : 'Выключено';
         document.getElementById('reportsLabel').textContent = settings.reports ? 'Включено' : 'Выключено';
+        
+        // Добавляем слушатель на изменение времени напоминания
+        reminderInput.onchange = () => {
+            settings.reminderTime = parseInt(reminderInput.value);
+            sync();
+        };
     }
 
     function toggleTheme() {
@@ -1399,7 +1455,27 @@
     }
 
     // ========== INIT ==========
+    // Загружаем из кеша при первой загрузке
+    loadFromCache();
     applySettings();
+    
+    // Сохраняем перед выходом со страницы
+    window.addEventListener('beforeunload', () => {
+        sync();
+    });
+    
+    // Периодическая синхронизация каждые 30 секунд
+    setInterval(() => {
+        if (auth.currentUser) sync();
+    }, 30000);
+    
+    // Синхронизация при изменении видимости вкладки
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && auth.currentUser) {
+            sync();
+        }
+    });
+    
     setInterval(renderUI, 60000);
 </script>
 
